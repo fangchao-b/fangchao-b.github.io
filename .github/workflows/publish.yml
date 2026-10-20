@@ -20,8 +20,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --location --retry 5 --retry-all-errors https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/site.tar.gz --output "$RUNNER_TEMP/site.tar.gz"
-          curl --fail --location --retry 5 --retry-all-errors https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/site.tar.gz.sha256 --output "$RUNNER_TEMP/site.tar.gz.sha256"
+          curl --fail --location --retry 5 --retry-all-errors \
+            "https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/site.tar.gz" \
+            --output "$RUNNER_TEMP/site.tar.gz"
+          curl --fail --location --retry 5 --retry-all-errors \
+            "https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/site.tar.gz.sha256" \
+            --output "$RUNNER_TEMP/site.tar.gz.sha256"
           (cd "$RUNNER_TEMP" && sha256sum --check site.tar.gz.sha256)
           mkdir -p _site
           tar -xzf "$RUNNER_TEMP/site.tar.gz" -C _site
@@ -37,6 +41,55 @@ jobs:
           print(f"Verified {len(manifest['files'])} website files")
           (root / 'site-manifest.json').unlink()
           (root / '.nojekyll').touch()
+          PY
+      - name: Set bookmark hold to two seconds
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          """Apply the two-second bookmark setting to the verified site-v1 release."""
+          from pathlib import Path
+          import hashlib
+          import sys
+          
+          root = Path('_site')
+          pages = ['index.html', 'ielts/index.html', 'study/index.html', 'ielts/study/index.html']
+          documents = {name: (root / name).read_text() for name in pages}
+          
+          def replace_once(text, old, new):
+              assert text.count(old) == 1, (old, text.count(old))
+              return text.replace(old, new, 1)
+          
+          for name in ['study/index.html', 'ielts/study/index.html']:
+              text = documents[name]
+              for old, new in [
+                  ('},3000);', '},2000);'),
+                  ('}, 3000);', '}, 2000);'),
+                  ('bookmark-hold 3s linear both', 'bookmark-hold 2s linear both'),
+                  ('长按单词 3 秒，再点书签标记', '长按单词 2 秒，再点书签标记'),
+              ]:
+                  text = replace_once(text, old, new)
+              documents[name] = text
+          
+          for name in ['index.html', 'ielts/index.html']:
+              documents[name] = replace_once(documents[name], '长按词卡 3 秒', '长按词卡 2 秒')
+          
+          revisions = {
+              'd8de44afad71': hashlib.sha256(documents['study/index.html'].encode()).hexdigest()[:12],
+              '500defbe118c': hashlib.sha256(documents['ielts/study/index.html'].encode()).hexdigest()[:12],
+          }
+          cache = 'wordspace-' + hashlib.sha256(''.join(documents.values()).encode()).hexdigest()[:12]
+          documents['sw.js'] = (root / 'sw.js').read_text()
+          for name in ['index.html', 'ielts/index.html', 'sw.js']:
+              text = documents[name]
+              assert 'wordspace-805d8b6e643a' in text
+              text = text.replace('wordspace-805d8b6e643a', cache)
+              for old, new in revisions.items():
+                  text = text.replace(old, new)
+              documents[name] = text
+          
+          for name, text in documents.items():
+              (root / name).write_text(text)
+          print(f'Updated bookmark delay, progress animation and help to 2 seconds; cache: {cache}')
           PY
       - name: Upload static website
         uses: actions/upload-pages-artifact@v3
