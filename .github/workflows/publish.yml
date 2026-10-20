@@ -1,0 +1,57 @@
+name: Publish Wordspace
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out website package
+        uses: actions/checkout@v4
+      - name: Download and verify website release
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 5 --retry-all-errors https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/site.tar.gz --output "$RUNNER_TEMP/site.tar.gz"
+          curl --fail --location --retry 5 --retry-all-errors https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/site.tar.gz.sha256 --output "$RUNNER_TEMP/site.tar.gz.sha256"
+          (cd "$RUNNER_TEMP" && sha256sum --check site.tar.gz.sha256)
+          mkdir -p _site
+          tar -xzf "$RUNNER_TEMP/site.tar.gz" -C _site
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root = Path('_site')
+          manifest = json.loads((root / 'site-manifest.json').read_text())
+          for name, digest in manifest['files'].items():
+              path = root / name
+              assert path.is_file(), f'Missing file: {name}'
+              assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, f'Corrupted file: {name}'
+          print(f"Verified {len(manifest['files'])} website files")
+          (root / 'site-manifest.json').unlink()
+          (root / '.nojekyll').touch()
+          PY
+      - name: Upload static website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
