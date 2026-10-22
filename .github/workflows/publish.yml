@@ -98,7 +98,7 @@ jobs:
           curl --fail --location --retry 5 --retry-all-errors \
             "https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/excerpts-update.tar.gz" \
             --output "$RUNNER_TEMP/excerpts-update.tar.gz"
-          echo "5cc3114e0bbace9f03dfa24ad23e2dd104557ce91b734f47d1a7ea4881c6919a  $RUNNER_TEMP/excerpts-update.tar.gz" | sha256sum --check
+                    echo "8c418f48700858295cd6a7b472ef1b380085631f71f990edf7adadd2556c6574  $RUNNER_TEMP/excerpts-update.tar.gz" | sha256sum --check
           tar -tzf "$RUNNER_TEMP/excerpts-update.tar.gz" | while IFS= read -r name; do
             case "$name" in
               ._*|*/._*) ;;
