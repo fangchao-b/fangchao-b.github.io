@@ -101,12 +101,12 @@ jobs:
           echo "5cc3114e0bbace9f03dfa24ad23e2dd104557ce91b734f47d1a7ea4881c6919a  $RUNNER_TEMP/excerpts-update.tar.gz" | sha256sum --check
           tar -tzf "$RUNNER_TEMP/excerpts-update.tar.gz" | while IFS= read -r name; do
             case "$name" in
-              ._*) ;;
+              ._*|*/._*) ;;
               index.html|ielts/index.html|study/index.html|ielts/study/index.html|sw.js|study/manifest.json|ielts/study/manifest.json) ;;
               *) echo "Unexpected update file: $name" >&2; exit 1 ;;
             esac
           done
-          tar --exclude='._*' -xzf "$RUNNER_TEMP/excerpts-update.tar.gz" -C _site
+          tar --exclude='._*' --exclude='*/._*' -xzf "$RUNNER_TEMP/excerpts-update.tar.gz" -C _site
       - name: Upload static website
         uses: actions/upload-pages-artifact@v3
         with:
