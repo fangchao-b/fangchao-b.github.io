@@ -91,6 +91,21 @@ jobs:
               (root / name).write_text(text)
           print(f'Updated bookmark delay, progress animation and help to 2 seconds; cache: {cache}')
           PY
+      - name: Apply excerpt notebook update
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 5 --retry-all-errors \
+            "https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/excerpts-update.tar.gz" \
+            --output "$RUNNER_TEMP/excerpts-update.tar.gz"
+          echo "5cc3114e0bbace9f03dfa24ad23e2dd104557ce91b734f47d1a7ea4881c6919a  $RUNNER_TEMP/excerpts-update.tar.gz" | sha256sum --check
+          tar -tzf "$RUNNER_TEMP/excerpts-update.tar.gz" | while IFS= read -r name; do
+            case "$name" in
+              index.html|ielts/index.html|study/index.html|ielts/study/index.html|sw.js|study/manifest.json|ielts/study/manifest.json) ;;
+              *) echo "Unexpected update file: $name" >&2; exit 1 ;;
+            esac
+          done
+          tar -xzf "$RUNNER_TEMP/excerpts-update.tar.gz" -C _site
       - name: Upload static website
         uses: actions/upload-pages-artifact@v3
         with:
