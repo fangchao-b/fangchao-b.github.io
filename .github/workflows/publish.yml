@@ -86,7 +86,7 @@ jobs:
         run: |
           set -euo pipefail
           curl --fail --location --retry 5 --retry-all-errors "https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/excerpts-update-v2.tar.gz" --output "$RUNNER_TEMP/excerpts-update.tar.gz"
-          echo "f45e90f8f2b1222ee0c7f70de9c2b9e188ac2d185e10c56387f30b8e790db63b  $RUNNER_TEMP/excerpts-update.tar.gz" | sha256sum --check
+          echo "2bf6a6f3ad5d16ba780ece87bec23ad9ed514fc4b84e2485f8fba093a390a5c6  $RUNNER_TEMP/excerpts-update.tar.gz" | sha256sum --check
           tar -tzf "$RUNNER_TEMP/excerpts-update.tar.gz" | while IFS= read -r name; do
             case "$name" in
               ._*|*/._*) ;;
