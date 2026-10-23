@@ -1,3 +1,24 @@
+name: Publish Wordspace
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out website package
+        uses: actions/checkout@v4
+      - name: Download and verify website release
+        shell: bash
+        run: |
           set -euo pipefail
           curl --fail --location --retry 5 --retry-all-errors \
             "https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/site.tar.gz" \
@@ -77,8 +98,29 @@
           curl --fail --location --retry 5 --retry-all-errors \
             "https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/excerpts-update.tar.gz" \
             --output "$RUNNER_TEMP/excerpts-update.tar.gz"
-                              echo "1f647d40551b325c37682db7ca3e7c0aed48697d4f9ecf1e160c21314510ee1d  $RUNNER_TEMP/excerpts-update.tar.gz" | sha256sum --check
+          echo "1f647d40551b325c37682db7ca3e7c0aed48697d4f9ecf1e160c21314510ee1d  $RUNNER_TEMP/excerpts-update.tar.gz" | sha256sum --check
           tar -tzf "$RUNNER_TEMP/excerpts-update.tar.gz" | while IFS= read -r name; do
             case "$name" in
               ._*|*/._*) ;;
               index.html|ielts/index.html|study/index.html|ielts/study/index.html|sw.js|study/manifest.json|ielts/study/manifest.json) ;;
+              *) echo "Unexpected update file: $name" >&2; exit 1 ;;
+            esac
+          done
+          tar --exclude='._*' --exclude='*/._*' -xzf "$RUNNER_TEMP/excerpts-update.tar.gz" -C _site
+      - name: Upload static website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
