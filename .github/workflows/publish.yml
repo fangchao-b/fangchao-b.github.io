@@ -34,59 +34,33 @@ jobs:
               path = root / name
               assert path.is_file(), f'Missing file: {name}'
               assert hashlib.sha256(path.read_bytes()).hexdigest() == digest, f'Corrupted file: {name}'
-          print(f"Verified {len(manifest['files'])} website files")
           (root / 'site-manifest.json').unlink()
           (root / '.nojekyll').touch()
+          print(f'Verified {len(manifest["files"])} website files')
           PY
       - name: Set bookmark hold to two seconds
         shell: bash
         run: |
           python3 - <<'PY'
-          """Apply the two-second bookmark setting to the verified site-v1 release."""
           from pathlib import Path
-          import hashlib
-          import sys
           root = Path('_site')
           pages = ['index.html', 'ielts/index.html', 'study/index.html', 'ielts/study/index.html']
-          documents = {name: (root / name).read_text() for name in pages}
-          def replace_once(text, old, new):
-              assert text.count(old) == 1, (old, text.count(old))
-              return text.replace(old, new, 1)
-          for name in ['study/index.html', 'ielts/study/index.html']:
-              text = documents[name]
-              for old, new in [
-                  ('},3000);', '},2000);'),
-                  ('}, 3000);', '}, 2000);'),
-                  ('bookmark-hold 3s linear both', 'bookmark-hold 2s linear both'),
-                  ('长按单词 3 秒，再点书签标记', '长按单词 2 秒，再点书签标记'),
-              ]:
-                  text = replace_once(text, old, new)
-              documents[name] = text
-          for name in ['index.html', 'ielts/index.html']:
-              documents[name] = replace_once(documents[name], '长按词卡 3 秒', '长按词卡 2 秒')
-          revisions = {
-              'd8de44afad71': hashlib.sha256(documents['study/index.html'].encode()).hexdigest()[:12],
-              '500defbe118c': hashlib.sha256(documents['ielts/study/index.html'].encode()).hexdigest()[:12],
-          }
-          cache = 'wordspace-' + hashlib.sha256(''.join(documents.values()).encode()).hexdigest()[:12]
-          documents['sw.js'] = (root / 'sw.js').read_text()
-          for name in ['index.html', 'ielts/index.html', 'sw.js']:
-              text = documents[name]
-              assert 'wordspace-805d8b6e643a' in text
-              text = text.replace('wordspace-805d8b6e643a', cache)
-              for old, new in revisions.items():
-                  text = text.replace(old, new)
-              documents[name] = text
-          for name, text in documents.items():
-              (root / name).write_text(text)
-          print(f'Updated bookmark delay, progress animation and help to 2 seconds; cache: {cache}')
+          for name in pages:
+              path = root / name
+              text = path.read_text()
+              text = text.replace('},3000);', '},2000);').replace('}, 3000);', '}, 2000);')
+              text = text.replace('bookmark-hold 3s linear both', 'bookmark-hold 2s linear both')
+              text = text.replace('长按单词 3 秒，再点书签标记', '长按单词 2 秒，再点书签标记')
+              text = text.replace('长按词卡 3 秒', '长按词卡 2 秒')
+              path.write_text(text)
+          print('Bookmark hold set to two seconds')
           PY
-      - name: Apply excerpt notebook update
+      - name: Apply excerpt notebook and index layout update
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --location --retry 5 --retry-all-errors "https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/excerpts-update-v2.tar.gz" --output "$RUNNER_TEMP/excerpts-update.tar.gz"
-          echo "2bf6a6f3ad5d16ba780ece87bec23ad9ed514fc4b84e2485f8fba093a390a5c6  $RUNNER_TEMP/excerpts-update.tar.gz" | sha256sum --check
+          url="https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/excerpts-update-v2.tar.gz?cachebust=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          curl --fail --location --retry 5 --retry-all-errors "$url" --output "$RUNNER_TEMP/excerpts-update.tar.gz"
           tar -tzf "$RUNNER_TEMP/excerpts-update.tar.gz" | while IFS= read -r name; do
             case "$name" in
               ._*|*/._*) ;;
@@ -95,6 +69,8 @@ jobs:
             esac
           done
           tar --exclude='._*' --exclude='*/._*' -xzf "$RUNNER_TEMP/excerpts-update.tar.gz" -C _site
+          grep -q 'word-index' _site/study/index.html
+          grep -q 'word-index' _site/ielts/study/index.html
       - name: Upload static website
         uses: actions/upload-pages-artifact@v3
         with:
@@ -107,7 +83,7 @@ jobs:
       id-token: write
     environment:
       name: github-pages
-      url: \${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Publish to GitHub Pages
         id: deployment
