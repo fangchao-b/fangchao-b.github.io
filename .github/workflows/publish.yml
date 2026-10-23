@@ -59,7 +59,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          url="https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/excerpts-update-v4.tar.gz?cachebust=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          url="https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/excerpts-update-v5.tar.gz?cachebust=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           curl --fail --location --retry 5 --retry-all-errors "$url" --output "$RUNNER_TEMP/excerpts-update.tar.gz"
           tar -tzf "$RUNNER_TEMP/excerpts-update.tar.gz" | while IFS= read -r name; do
             case "$name" in
