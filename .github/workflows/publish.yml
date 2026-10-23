@@ -20,12 +20,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --location --retry 5 --retry-all-errors \\
-            "https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/site.tar.gz" \\
-            --output "$RUNNER_TEMP/site.tar.gz"
-          curl --fail --location --retry 5 --retry-all-errors \\
-            "https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/site.tar.gz.sha256" \\
-            --output "$RUNNER_TEMP/site.tar.gz.sha256"
+          curl --fail --location --retry 5 --retry-all-errors "https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/site.tar.gz" --output "$RUNNER_TEMP/site.tar.gz"
+          curl --fail --location --retry 5 --retry-all-errors "https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/site.tar.gz.sha256" --output "$RUNNER_TEMP/site.tar.gz.sha256"
           (cd "$RUNNER_TEMP" && sha256sum --check site.tar.gz.sha256)
           mkdir -p _site
           tar -xzf "$RUNNER_TEMP/site.tar.gz" -C _site
@@ -89,9 +85,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --location --retry 5 --retry-all-errors \\
-            "https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/excerpts-update.tar.gz" \\
-            --output "$RUNNER_TEMP/excerpts-update.tar.gz"
+          curl --fail --location --retry 5 --retry-all-errors "https://github.com/fangchao-b/fangchao-b.github.io/releases/download/site-v1/excerpts-update.tar.gz" --output "$RUNNER_TEMP/excerpts-update.tar.gz"
           echo "a9d6896fd4922a1d15fa9d0c0172a20c54816544c417e3d03b2899cc70107595  $RUNNER_TEMP/excerpts-update.tar.gz" | sha256sum --check
           tar -tzf "$RUNNER_TEMP/excerpts-update.tar.gz" | while IFS= read -r name; do
             case "$name" in
