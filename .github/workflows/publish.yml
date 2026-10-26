@@ -71,6 +71,20 @@ jobs:
           tar --exclude='._*' --exclude='*/._*' -xzf "$RUNNER_TEMP/excerpts-update.tar.gz" -C _site
           grep -q 'word-index' _site/study/index.html
           grep -q 'word-index' _site/ielts/study/index.html
+      - name: Add phone vocabulary view
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "4cff1c9ae8bb96299947b28a1fe661b6dc82cd9a8d7754b3d9ff066a191dae28  mobile-update-v1.tar.gz" | sha256sum --check
+          tar -tzf mobile-update-v1.tar.gz | while IFS= read -r name; do
+            case "$name" in
+              mobile/index.html|mobile/mobile.css|mobile/mobile.js|mobile/catalog.js|mobile/data/ielts-*.js|mobile/data/cet4-*.js|sw.js) ;;
+              *) echo "Unexpected mobile file: $name" >&2; exit 1 ;;
+            esac
+          done
+          tar -xzf mobile-update-v1.tar.gz -C _site
+          test -s _site/mobile/data/ielts-22.js
+          test -s _site/mobile/data/cet4-24.js
       - name: Upload static website
         uses: actions/upload-pages-artifact@v3
         with:
